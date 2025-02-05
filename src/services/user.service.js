@@ -5,7 +5,6 @@ export const createUser = async (userBody) => {
     const user = await User.create(userBody);
     return user;
   } catch (error) {
-    console.error("Error creating user", error);
     throw error;
   }
 };
@@ -17,7 +16,22 @@ export const getUserByGoogleId = async (googleId) => {
     });
     return user;
   } catch (error) {
-    console.error("Error fetching user by google id", error);
     throw error;
   }
 };
+
+export const getUserIds = async () => {
+  try {
+    const ids = await User.find(
+      {},
+      {
+        _id: true,
+      }
+    );
+    return ids.map((id) => id?._id);
+  } catch (error) {
+    throw error;
+  }
+};
+
+

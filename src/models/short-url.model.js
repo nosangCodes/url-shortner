@@ -16,6 +16,11 @@ const shortUrlSchema = new Schema(
       unique: true,
       required: true,
     },
+    topic: {
+      type: mongoose.Types.ObjectId,
+      ref: "Topic",
+      required: false,
+    },
   },
   {
     timestamps: true,

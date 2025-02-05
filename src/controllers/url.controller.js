@@ -1,8 +1,18 @@
 import status from "http-status";
 import { urlService, userService } from "../services/index.js";
+import ShortUniqueId from "short-unique-id";
+import { UAParser } from "ua-parser-js";
+import geoip from "geoip-lite";
 
 export const createShortUrl = async (req, res) => {
   try {
+    let alias = req.body?.alias || "";
+    if (!alias) {
+      // generate random alias
+      alias = new ShortUniqueId({ length: 10 }).randomUUID();
+      Object.assign(req.body, { alias });
+    }
+
     const result = await urlService.createShortUrl({
       ...req.body,
       user_id: req.user.userId,
@@ -38,6 +48,10 @@ export const redirectToOriginalUrl = async (req, res) => {
         error: "alias not found",
       });
     }
+
+    // store analutics
+    await storeAnalytics(req, result);
+
     return res.redirect(`${result.original_url}`);
   } catch (error) {
     console.error("Erroe redurecting short url", error);
@@ -46,3 +60,32 @@ export const redirectToOriginalUrl = async (req, res) => {
     });
   }
 };
+
+async function storeAnalytics(req, shortUrlData) {
+  if (!req) {
+    throw new Error("Invalid request");
+  }
+
+  const ua = UAParser(req.headers["user-agent"]);
+  let ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  if (ip === "::1") {
+    ip = "127.0.0.1"; // Replace with localhost
+  }
+  const geo = geoip.lookup(ip);
+  console.log("🚀 ~ storeAnalytics ~ geo:", geo);
+
+  await urlService.storeRedirectAnalytics({
+    ip_address: ip,
+    short_url_id: shortUrlData._id,
+    os_name: ua.os.name,
+    device_type: ua.device.type,
+    browser: ua.browser.name,
+    country: geo?.country,
+    region: geo?.region,
+    time_zone: geo?.timezone,
+    city: geo?.city,
+    lat: geo?.ll[0],
+    lon: geo?.ll[1],
+  });
+}
+

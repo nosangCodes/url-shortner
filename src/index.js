@@ -5,6 +5,8 @@ import connectDB from "./db.js";
 import passport from "./passport.config.js";
 import routes from "./routes/index.js";
 
+import { UAParser } from "ua-parser-js";
+
 const PORT = process.env.PORT || 8000;
 const app = express();
 
@@ -19,7 +21,12 @@ app.use(bodyParser.json());
 app.use("/api", routes);
 
 app.get("/", (req, res) => {
-  res.send("<a href='/api/auth/google'>Sign in with Google</a>");
+  let ua = UAParser(req.headers["user-agent"]);
+  console.log("🚀 ~ app.get ~ ua:", ua.browser.name);
+
+  res.send(
+    "<div><a href='/api/auth/google'>Sign in with Google</a><br/><a href='/api/shorten/C2kYRwg1UG'>Redirect</a></div>"
+  );
 });
 
 app.get("/profile", (req, res) => {
