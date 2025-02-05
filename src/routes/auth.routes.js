@@ -1,5 +1,6 @@
 import { Router } from "express";
 import passport from "../passport.config.js";
+import { userController } from "../controllers/index.js";
 
 const router = Router();
 
@@ -13,11 +14,7 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false, failureRedirect: "/" }),
-  (req, res) => {
-    // send token
-
-    res.redirect("/profile");
-  }
+  userController.createUser
 );
 
 export default router;
