@@ -5,9 +5,17 @@ const shortUrlSchema = new Schema(
     user_id: {
       type: mongoose.Types.ObjectId,
       ref: "User",
+      required: true,
     },
-    original_url: String,
-    alias: String,
+    original_url: {
+      type: String,
+      required: true,
+    },
+    alias: {
+      type: String,
+      unique: true,
+      required: true,
+    },
   },
   {
     timestamps: true,
