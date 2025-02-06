@@ -153,3 +153,28 @@ export async function getAnalyticsByAlias(req, res) {
     });
   }
 }
+
+export async function getAnalyticsByTopic(req, res) {
+  try {
+    const topic = req.params?.topic;
+    if (!topic) {
+      return res.status(status.BAD_REQUEST).json({
+        error: "Missing Params",
+      });
+    }
+
+    const topciExist = await urlService.getTopicByName(topic);
+    if (!topciExist) {
+      return res.status(status.NOT_FOUND).json({
+        error: "Topic not found",
+      });
+    }
+    const result = await urlService.getAnalyticsByTopicId(topciExist._id);
+    return res.status(status.OK).json(result);
+  } catch (error) {
+    console.log("🚀 ~ getAnalyticsByTopicId ~ error:", error);
+    return res.status(status.INTERNAL_SERVER_ERROR).json({
+      error: "Something went wrong.",
+    });
+  }
+}

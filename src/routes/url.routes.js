@@ -20,6 +20,7 @@ router.get(
 );
 
 router.get("/alias", urlController.getAliasList);
-
 router.get("/analytics/:alias", urlController.getAnalyticsByAlias);
+router.get("/analytics/topic/:topic", urlController.getAnalyticsByTopic);
+
 export default router;

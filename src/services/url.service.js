@@ -151,6 +151,7 @@ export const getAnalyticsByUrlId = async (urlId) => {
       {
         $group: {
           _id: { $ifNull: ["$os", ""] },
+          totalClicks: { $sum: 1 },
           uniqueUsers: { $addToSet: "$ip_address" },
         },
       },
@@ -158,7 +159,7 @@ export const getAnalyticsByUrlId = async (urlId) => {
         $project: {
           _id: 0,
           os: "$_id",
-          uniqueUsers: { $size: "$uniqueUsers" },
+          totalClicks: 1,
           uniqueClicks: { $size: "$uniqueUsers" },
         },
       },
@@ -169,6 +170,7 @@ export const getAnalyticsByUrlId = async (urlId) => {
       {
         $group: {
           _id: { $ifNull: ["$device_type", ""] },
+          totalClicks: { $sum: 1 },
           uniqueUsers: {
             $addToSet: "$ip_address",
           },
@@ -178,7 +180,7 @@ export const getAnalyticsByUrlId = async (urlId) => {
         $project: {
           _id: 0,
           device: "$_id",
-          uniqueUsers: { $size: "$uniqueUsers" },
+          totalClicks: 1,
           uniqueClicks: { $size: "$uniqueUsers" },
         },
       },
@@ -191,6 +193,95 @@ export const getAnalyticsByUrlId = async (urlId) => {
       osType,
       deviceType,
     };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAnalyticsByTopicId = async (topicId) => {
+  try {
+    const result = {};
+
+    const analytics = await Click.aggregate([
+      {
+        $match: {
+          short_url_id: {
+            $in: await ShortUrl.find({ topic: topicId }).distinct("_id"),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalClicks: { $sum: 1 },
+          uniqueClicks: { $addToSet: "$ip_address" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalClicks: 1,
+          uniqueClicks: { $size: "$uniqueClicks" },
+        },
+      },
+    ]);
+
+
+
+    const clicksByDate = await Click.aggregate([
+      {
+        $match: {
+          $and: [
+            {
+              short_url_id: {
+                $in: await ShortUrl.find({ topic: topicId }).distinct("_id"),
+              },
+            },
+            {
+              createdAt: {
+                $gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+                $lt: new Date(),
+              },
+            },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: {
+            date: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$createdAt",
+              },
+            },
+          },
+          totalClicks: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          date: 1,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id.date",
+          totalClicks: 1,
+        },
+      },
+    ]);
+
+    // const urls = await Click.aggregate()
+
+    if (analytics.length === 0) {
+      Object.assign(result, { totalClicks: 0, uniqueClicks: 0 }); // If no data is found
+    }
+
+    Object.assign(result, analytics[0]);
+    Object.assign(result, { clicksByDate });
+    return result;
   } catch (error) {
     throw error;
   }
