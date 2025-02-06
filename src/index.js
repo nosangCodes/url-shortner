@@ -25,7 +25,7 @@ app.get("/", (req, res) => {
   console.log("🚀 ~ app.get ~ ua:", ua.browser.name);
 
   res.send(
-    "<div><a href='/api/auth/google'>Sign in with Google</a><br/><a href='/api/shorten/C2kYRwg1UG'>Redirect</a></div>"
+    "<div><a href='/api/auth/google'>Sign in with Google</a><br/><a href='/api/shorten/FZfD6Hzem1'>Redirect</a></div><br/><a href='/api/shorten/OwQYqFYCTC'>Redirect</a></div><br/><a href='/api/shorten/WGzdcBSDjb'>Redirect</a></div><br/><a href='/api/shorten/IrAyC3FeCP'>Redirect</a></div>"
   );
 });
 

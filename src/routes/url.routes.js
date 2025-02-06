@@ -19,4 +19,7 @@ router.get(
   urlController.redirectToOriginalUrl
 );
 
+router.get("/alias", urlController.getAliasList);
+
+router.get("/analytics/:alias", urlController.getAnalyticsByAlias);
 export default router;

@@ -4,10 +4,20 @@ import { urlService, userService } from "../services/index.js";
 import connectDB from "../db.js";
 import { faker } from "@faker-js/faker";
 import ShortUniqueId from "short-unique-id";
+import { browserNames, devices, osNames, websites } from "./urls.js";
 
-async function populateUrls(req, res) {
+function getRandom(list = [], required) {
+  if (!list?.length) {
+    throw new Error("Empty list");
+  }
+  if (!required && Math.random() < 0.5) {
+    return "";
+  }
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+async function populateUrls() {
   try {
-    const ITEMS_TO_INSERT = 30;
     const userIds = await userService.getUserIds();
 
     if (!userIds?.length) {
@@ -15,7 +25,7 @@ async function populateUrls(req, res) {
     }
 
     const dummyData = [];
-    for (let i = 0; i < ITEMS_TO_INSERT; i++) {
+    for (let i = 0; i < websites.length; i++) {
       const userId = userIds[Math.floor(Math.random() * userIds.length)];
       const newTopic = faker.company.buzzNoun();
       console.log("🚀  ~ newTopic:", newTopic);
@@ -30,7 +40,7 @@ async function populateUrls(req, res) {
 
       let item = {
         user_id: userId,
-        original_url: faker.internet.url(),
+        original_url: websites[i],
         alias: new ShortUniqueId({ length: 10 }).randomUUID(),
         topic: topic["_id"],
       };
@@ -54,6 +64,40 @@ async function populateUrls(req, res) {
   }
 }
 
+async function populateClicks() {
+  try {
+    const ITEMS_TO_INSERT = 50;
+    console.log("populating clicks...");
+    const shortUrlIds = await urlService.getShortUrlIds();
+
+    const clicks = [];
+
+    for (let i = 0; i < ITEMS_TO_INSERT; i++) {
+      const item = {
+        ip_address: faker.internet.ip(),
+        short_url_id: getRandom(shortUrlIds, true),
+        os: getRandom(osNames),
+        device_type: getRandom(devices),
+        browser: getRandom(browserNames),
+        country: faker.location.country(),
+        region: faker.location.county(),
+        time_zone: faker.location.timeZone(),
+        city: faker.location.city(),
+        lat: faker.location.latitude(),
+        lon: faker.location.longitude(),
+      };
+      console.log(item);
+      clicks.push(item);
+    }
+
+    const result = await urlService.dumpAnalytics(clicks);
+    console.log("analytics populated", result);
+  } catch (error) {
+    console.error("error populating clicks", error);
+  }
+}
+
 await connectDB();
-await populateUrls();
+// await populateUrls();
+await populateClicks();
 process.exit(1);
