@@ -178,3 +178,29 @@ export async function getAnalyticsByTopic(req, res) {
     });
   }
 }
+
+export async function geteAnalyticsByUser(req, res) {
+  try {
+    const user = req?.user;
+    if (!user) {
+      return res.status(status.UNAUTHORIZED).json({
+        error: "Unauthrized user",
+      });
+    }
+
+    const userExists = await userService.getUserById(req.user?.userId);
+
+    if (!userExists) {
+      return res.status(status.NOT_FOUND).json({
+        error: "User not found",
+      });
+    }
+    const result = await urlService.getOverallANalyticsByUserId(userExists._id);
+    return res.json(result);
+  } catch (error) {
+    console.log("🚀 ~ geteAnalyticsByUser ~ error:", error);
+    return res.status(status.INTERNAL_SERVER_ERROR).json({
+      error: "Something went wrong.",
+    });
+  }
+}

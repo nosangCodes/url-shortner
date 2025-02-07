@@ -19,6 +19,16 @@ export const getUserByGoogleId = async (googleId) => {
     throw error;
   }
 };
+export const getUserById = async (userId) => {
+  try {
+    const user = await User.findOne({
+      _id: userId,
+    });
+    return user;
+  } catch (error) {
+    throw error;
+  }
+};
 
 export const getUserIds = async () => {
   try {
@@ -33,5 +43,3 @@ export const getUserIds = async () => {
     throw error;
   }
 };
-
-

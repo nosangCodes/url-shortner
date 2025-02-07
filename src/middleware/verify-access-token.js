@@ -9,7 +9,7 @@ if (!ACCESS_TOKEN_SECRET || !REFRESH_TOKEN_SECRET) {
   );
 }
 
-export default function verufyAccessToken(req, res, next) {
+export default function verifyAccessToken(req, res, next) {
   try {
     const token = req.headers.authorization?.split(" ")?.[1];
     if (!token) {
