@@ -226,8 +226,6 @@ export const getAnalyticsByTopicId = async (topicId) => {
       },
     ]);
 
-
-
     const clicksByDate = await Click.aggregate([
       {
         $match: {
@@ -273,14 +271,50 @@ export const getAnalyticsByTopicId = async (topicId) => {
       },
     ]);
 
-    // const urls = await Click.aggregate()
+    const urls = await Click.aggregate([
+      {
+        $match: {
+          short_url_id: {
+            $in: await ShortUrl.find({ topic: topicId }).distinct("_id"),
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "shorturls",
+          localField: "short_url_id",
+          foreignField: "_id",
+          as: "short_url",
+        },
+      },
+      {
+        $unwind: { path: "$short_url", preserveNullAndEmptyArrays: false },
+      },
+      {
+        $group: {
+          _id: "$short_url.alias",
+          totalClicks: { $sum: 1 },
+          uniqueClicks: { $addToSet: "$ip_address" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          shortUrl: {
+            $concat: [process.env.SERVER_URL, "/api/shorten/", "$_id"],
+          },
+          totalClicks: 1,
+          uniqueClicks: { $size: "$uniqueClicks" },
+        },
+      },
+    ]);
 
     if (analytics.length === 0) {
       Object.assign(result, { totalClicks: 0, uniqueClicks: 0 }); // If no data is found
     }
 
     Object.assign(result, analytics[0]);
-    Object.assign(result, { clicksByDate });
+    Object.assign(result, { clicksByDate, urls });
     return result;
   } catch (error) {
     throw error;
