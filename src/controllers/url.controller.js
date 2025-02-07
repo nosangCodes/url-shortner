@@ -3,6 +3,7 @@ import { urlService, userService } from "../services/index.js";
 import ShortUniqueId from "short-unique-id";
 import { UAParser } from "ua-parser-js";
 import geoip from "geoip-lite";
+import getSetRedisCache from "../utils/get-set-redis-cache.js";
 
 export const createShortUrl = async (req, res) => {
   try {
@@ -38,24 +39,22 @@ export const redirectToOriginalUrl = async (req, res) => {
   try {
     const alias = req.params?.alias;
     if (!alias) {
-      return res.status(status.BAD_REQUEST).json({
-        error: "Missing params",
-      });
+      return res.status(400).json({ error: "Missing params" });
     }
-    const result = await urlService.getByAlias(alias);
+
+    const result = await getSetRedisCache(`redirect:${alias}`, async () => {
+      return await urlService.getByAlias(alias);
+    });
+
     if (!result) {
-      return res.status(status.NOT_FOUND).json({
-        error: "alias not found",
-      });
+      return res.status(404).json({ error: "Alias not found" });
     }
+    Promise.resolve(storeAnalytics(req, result)).catch(console.error);
 
-    // store analutics
-    await storeAnalytics(req, result);
-
-    return res.redirect(`${result.original_url}`);
+    return res.redirect(result.original_url);
   } catch (error) {
-    console.error("Erroe redurecting short url", error);
-    return res.status(status.INTERNAL_SERVER_ERROR).json({
+    console.error("Error redirecting short URL", error);
+    return res.status(500).json({
       error: "Something went wrong. Please try again.",
     });
   }
@@ -137,14 +136,26 @@ export async function getAnalyticsByAlias(req, res) {
       });
     }
 
-    const alisExists = await urlService.getByAlias(alias);
+    // Check if alias exists in cache or database
+    const aliasExists = await getSetRedisCache(
+      `alias-exists:${alias}`,
+      async () => {
+        return await urlService.getByAlias(alias);
+      },
+      60 * 60 * 2
+    );
 
-    if (!alisExists) {
-      return res.status(status.NOT_FOUND).json({
-        error: "Alias not found",
-      });
+    if (!aliasExists) {
+      return res.status(404).json({ error: "Alias not found" });
     }
-    const result = await urlService.getAnalyticsByUrlId(alisExists._id);
+
+    const result = await getSetRedisCache(
+      `alias-analytics:${alias}`,
+      async () => {
+        return await urlService.getAnalyticsByUrlId(alisExists._id);
+      }
+    );
+
     return res.json(result);
   } catch (error) {
     console.log("🚀 ~ getAnalyticsByAlias ~ error:", error);
@@ -163,13 +174,25 @@ export async function getAnalyticsByTopic(req, res) {
       });
     }
 
-    const topciExist = await urlService.getTopicByName(topic);
+    const topciExist = await getSetRedisCache(
+      `redis-exists:${topic}`,
+      async () => {
+        return await urlService.getTopicByName(topic);
+      }
+    );
+
     if (!topciExist) {
       return res.status(status.NOT_FOUND).json({
         error: "Topic not found",
       });
     }
-    const result = await urlService.getAnalyticsByTopicId(topciExist._id);
+
+    const result = await getSetRedisCache(
+      `topic-analytics:${topic}`,
+      async () => {
+        return await urlService.getAnalyticsByTopicId(topciExist._id);
+      }
+    );
     return res.status(status.OK).json(result);
   } catch (error) {
     console.log("🚀 ~ getAnalyticsByTopicId ~ error:", error);
@@ -188,14 +211,25 @@ export async function geteAnalyticsByUser(req, res) {
       });
     }
 
-    const userExists = await userService.getUserById(req.user?.userId);
+    const userExists = await getSetRedisCache(
+      `user-exists:${user.userId}`,
+      async () => {
+        return await userService.getUserById(req.user?.userId);
+      }
+    );
 
     if (!userExists) {
       return res.status(status.NOT_FOUND).json({
         error: "User not found",
       });
     }
-    const result = await urlService.getOverallANalyticsByUserId(userExists._id);
+    const result = await getSetRedisCache(
+      `user-analytics:${userExists._id}`,
+      async () => {
+        return await urlService.getOverallANalyticsByUserId(userExists._id);
+      }
+    );
+
     return res.json(result);
   } catch (error) {
     console.log("🚀 ~ geteAnalyticsByUser ~ error:", error);

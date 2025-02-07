@@ -16,6 +16,7 @@ export const createShortUrl = async (data) => {
 };
 
 export const getByAlias = async (alias) => {
+  console.log("🚀 ~ getByAlias ~ alias:", alias);
   try {
     const result = await ShortUrl.findOne({
       alias: alias,

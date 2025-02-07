@@ -6,6 +6,7 @@ import passport from "./passport.config.js";
 import routes from "./routes/index.js";
 
 import { UAParser } from "ua-parser-js";
+import { connectRedis } from "./redis-client.js";
 
 const PORT = process.env.PORT || 8000;
 const app = express();
@@ -33,8 +34,16 @@ app.get("/profile", (req, res) => {
   res.send("Profile Page");
 });
 
-app.listen(PORT, async () => {
-  await connectDB();
-  console.log("server runnning on port", PORT);
-  console.log("http://localhost:8000");
-});
+(async () => {
+  try {
+    await connectDB();
+    await connectRedis();
+    app.listen(PORT, async () => {
+      console.log("server runnning on port", PORT);
+      console.log("http://localhost:8000");
+    });
+  } catch (error) {
+    console.error("Faile to start server", error);
+    process.exit(1);
+  }
+})();
