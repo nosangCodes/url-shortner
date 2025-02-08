@@ -4,14 +4,35 @@ import ShortUniqueId from "short-unique-id";
 import { UAParser } from "ua-parser-js";
 import geoip from "geoip-lite";
 import getSetRedisCache from "../utils/get-set-redis-cache.js";
+import getCooldownTime from "../utils/get-cooldown-time.js";
 
 export const createShortUrl = async (req, res) => {
+  const DAILY_LIMIT = 10;
   try {
     let alias = req.body?.alias || "";
     if (!alias) {
       // generate random alias
       alias = new ShortUniqueId({ length: 10 }).randomUUID();
       Object.assign(req.body, { alias });
+    }
+
+    const userExists = await userService.getUserById(req.user.userId);
+
+    if (!userExists) {
+      return res.status(status.NOT_FOUND).json({
+        error: "User not found",
+      });
+    }
+
+    // get short urls created today
+    const urlsCreatedToday = await urlService.getNumberOfUrlsCreatedToday(
+      req.user.userId
+    );
+
+    if (urlsCreatedToday >= DAILY_LIMIT) {
+      return res
+        .status(status.BAD_REQUEST)
+        .json({ erorr: `Daily limit reached ${getCooldownTime()}` });
     }
 
     const result = await urlService.createShortUrl({
@@ -61,6 +82,7 @@ export const redirectToOriginalUrl = async (req, res) => {
 };
 
 async function storeAnalytics(req, shortUrlData) {
+  console.log("storing analytics");
   try {
     if (!req) {
       throw new Error("Invalid request");
@@ -68,28 +90,18 @@ async function storeAnalytics(req, shortUrlData) {
 
     const ua = UAParser(req.headers["user-agent"]);
     let ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    console.log(
-      "🚀 ~ storeAnalytics ~ req.socket.remoteAddress:",
-      req.socket.remoteAddress
-    );
-    console.log(
-      "🚀 ~ storeAnalytics ~ req.headers",
-      req.headers["x-forwarded-for"]
-    );
-    console.log("🚀 ~ storeAnalytics ~ ip:", ip);
+
     if (ip === "::1") {
       ip = "127.0.0.1"; // Replace with localhost
     }
     const geo = geoip.lookup(ip);
-    console.log("🚀 ~ storeAnalytics ~ geo:", geo);
 
-    console.log("🚀 ~ storeAnalytics ~ ua:", ua);
     await urlService.storeRedirectAnalytics({
       ip_address: ip,
-      short_url_id: shortUrlData._id,
+      short_url_id: shortUrlData?._id,
       os: ua.os.name,
-      device_type: ua.device.type,
-      browser: ua.browser.name,
+      device_type: ua?.device?.type,
+      browser: ua?.browser?.name,
       country: geo?.country,
       region: geo?.region,
       time_zone: geo?.timezone,
@@ -152,7 +164,7 @@ export async function getAnalyticsByAlias(req, res) {
     const result = await getSetRedisCache(
       `alias-analytics:${alias}`,
       async () => {
-        return await urlService.getAnalyticsByUrlId(alisExists._id);
+        return await urlService.getAnalyticsByUrlId(aliasExists._id);
       }
     );
 

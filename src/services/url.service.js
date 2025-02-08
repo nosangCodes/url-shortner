@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Click from "../models/click.model.js";
 import ShortUrl from "../models/short-url.model.js";
 import Topic from "../models/topci.model.js";
@@ -15,8 +16,52 @@ export const createShortUrl = async (data) => {
   }
 };
 
+export const getNumberOfUrlsCreatedToday = async (userId) => {
+  console.log("🚀 ~ getNumberOfUrlsCreatedToday ~ userId:", userId);
+  try {
+    const result = await ShortUrl.aggregate([
+      {
+        $match: {
+          $and: [
+            {
+              user_id: new mongoose.Types.ObjectId(userId),
+            },
+            {
+              createdAt: {
+                $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+                $lt: new Date(),
+              },
+            },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          count: 1,
+        },
+      },
+    ]);
+
+    console.log("🚀 ~ getNumberOfUrlsCreatedToday ~ result:", result);
+    if (result.length === 0) {
+      return 0;
+    }
+
+    return result[0].count;
+    
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getByAlias = async (alias) => {
-  console.log("🚀 ~ getByAlias ~ alias:", alias);
   try {
     const result = await ShortUrl.findOne({
       alias: alias,
@@ -30,6 +75,7 @@ export const getByAlias = async (alias) => {
 export const storeRedirectAnalytics = async (data) => {
   try {
     const result = await Click.create(data);
+    console.log("🚀 ~ storeRedirectAnalytics ~ result:", result);
     return result;
   } catch (error) {
     throw error;
