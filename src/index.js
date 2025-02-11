@@ -5,7 +5,6 @@ import connectDB from "./db.js";
 import passport from "./passport.config.js";
 import routes from "./routes/index.js";
 
-import { UAParser } from "ua-parser-js";
 import { connectRedis } from "./redis-client.js";
 
 const PORT = process.env.PORT || 8000;
@@ -22,12 +21,44 @@ app.use(bodyParser.json());
 app.use("/api", routes);
 
 app.get("/", (req, res) => {
-  let ua = UAParser(req.headers["user-agent"]);
-  console.log("🚀 ~ app.get ~ ua:", ua.browser.name);
-
-  res.send(
-    "<div><a href='/api/auth/google'>Sign in with Google</a><br/><a href='/api/shorten/FZfD6Hzem1'>Redirect</a></div><br/><a href='/api/shorten/OwQYqFYCTC'>Redirect</a></div><br/><a href='/api/shorten/WGzdcBSDjb'>Redirect</a></div><br/><a href='/api/shorten/IrAyC3FeCP'>Redirect</a></div>"
-  );
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Shorty</title>
+      <style>
+        body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+          background-color: #f4f4f4;
+          font-family: Arial, sans-serif;
+        }
+        .btn {
+          display: inline-block;
+          padding: 12px 24px;
+          font-size: 16px;
+          color: white;
+          background-color: #4285F4;
+          border: none;
+          border-radius: 5px;
+          text-decoration: none;
+          transition: background 0.3s ease;
+        }
+        .btn:hover {
+          background-color: #357ae8;
+        }
+      </style>
+    </head>
+    <body>
+      <a href='/api/auth/google' class='btn'>Sign in with Google</a>
+    </body>
+    </html>
+  `);
 });
 
 app.get("/profile", (req, res) => {
