@@ -40,7 +40,6 @@ app.get("/profile", (req, res) => {
     await connectRedis();
     app.listen(PORT, async () => {
       console.log("server runnning on port", PORT);
-      console.log("http://localhost:8000");
     });
   } catch (error) {
     console.error("Faile to start server", error);

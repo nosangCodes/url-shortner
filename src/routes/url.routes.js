@@ -20,12 +20,22 @@ router.get(
 );
 
 router.get("/alias", urlController.getAliasList);
+
 router.get(
   "/analytics/overall",
   verifyAccessToken,
   urlController.geteAnalyticsByUser
 );
-router.get("/analytics/:alias", urlController.getAnalyticsByAlias);
-router.get("/analytics/topic/:topic", urlController.getAnalyticsByTopic);
+router.get(
+  "/analytics/:alias",
+  verifyAccessToken,
+  urlController.getAnalyticsByAlias
+);
+
+router.get(
+  "/analytics/topic/:topic",
+  verifyAccessToken,
+  urlController.getAnalyticsByTopic
+);
 
 export default router;
